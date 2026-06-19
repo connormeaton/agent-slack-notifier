@@ -48,13 +48,13 @@ send_all() {
       Stop)         title="Claude finished";  tags="white_check_mark"; prio="default" ;;
       *)            title="Claude Code";       tags="information_source"; prio="default" ;;
     esac
-    BODY="$(printf '%s' "$TEXT" | sed -e 's/[*_>]//g' -e 's/:[a-z_]*://g')"
+    BODY="$(printf '%s' "$TEXT" | sed -e 's/[*_>`]//g' -e 's/:[a-z_]*://g')"
     CODE="$(curl -s -o /dev/null -w '%{http_code}' -H "Title: $title" -H "Tags: $tags" -H "Priority: $prio" \
       ${NTFY_TOKEN:+-H "Authorization: Bearer $NTFY_TOKEN"} -d "$BODY" "$server/$NTFY_TOPIC")"
     if [[ "$CODE" =~ ^2 ]]; then log "ntfy ok"; sent=1; else log "ntfy FAILED (http $CODE)"; fi
   fi
   if [ "${ENABLE_SMS:-false}" = "true" ] && [ -n "${TWILIO_ACCOUNT_SID:-}" ]; then
-    BODY="$(printf '%s' "$TEXT" | sed -e 's/[*_>]//g' -e 's/:[a-z_]*://g')"
+    BODY="$(printf '%s' "$TEXT" | sed -e 's/[*_>`]//g' -e 's/:[a-z_]*://g')"
     CODE="$(curl -s -o /dev/null -w '%{http_code}' -X POST \
       "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages.json" \
       --data-urlencode "Body=$BODY" --data-urlencode "From=$TWILIO_FROM_NUMBER" \
@@ -134,6 +134,8 @@ except Exception:
     data = {}
 cwd = data.get("cwd") or ""
 project = os.path.basename(cwd.rstrip("/")) if cwd else ""
+sid = data.get("session_id") or ""
+session = sid.split("-")[0][:8] if sid else ""
 msg = (data.get("message") or "").strip()
 summary = ""
 tp = data.get("transcript_path") or ""
@@ -165,12 +167,13 @@ if tp:
 print(project)
 print(msg)
 print(summary)
+print(session)
 PY
 
-PROJECT=""; HOOK_MSG=""; SNIPPET=""
+PROJECT=""; HOOK_MSG=""; SNIPPET=""; SESSION=""
 if command -v python3 >/dev/null 2>&1; then
   mapfile -t _PY < <(STDIN_JSON="$STDIN_JSON" python3 -c "$PYHELPER")
-  PROJECT="${_PY[0]:-}"; HOOK_MSG="${_PY[1]:-}"; SNIPPET="${_PY[2]:-}"
+  PROJECT="${_PY[0]:-}"; HOOK_MSG="${_PY[1]:-}"; SNIPPET="${_PY[2]:-}"; SESSION="${_PY[3]:-}"
 fi
 
 case "$EVENT_TYPE" in
@@ -179,6 +182,7 @@ case "$EVENT_TYPE" in
   *)            TEXT=":information_source: Claude Code: $EVENT_TYPE event" ;;
 esac
 [ -n "$PROJECT" ] && TEXT="$TEXT  ·  *$PROJECT*"
+[ -n "$SESSION" ] && TEXT="$TEXT  ·  session \`$SESSION\`"
 [ "$EVENT_TYPE" = "Notification" ] && [ -n "$HOOK_MSG" ] && TEXT="$TEXT"$'\n'"> $HOOK_MSG"
 
 # Stop: optionally append a "what finished" summary.
