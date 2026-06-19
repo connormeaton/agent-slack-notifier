@@ -47,8 +47,37 @@ except Exception:
 cwd = data.get("cwd") or ""
 project = os.path.basename(cwd.rstrip("/")) if cwd else ""
 msg = (data.get("message") or "").strip()
+# For Stop events, derive a brief "what finished" line from Claude's last message.
+summary = ""
+tp = data.get("transcript_path") or ""
+if tp:
+    try:
+        last = ""
+        with open(os.path.expanduser(tp)) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    d = json.loads(line)
+                except Exception:
+                    continue
+                if d.get("type") != "assistant":
+                    continue
+                c = (d.get("message") or {}).get("content")
+                if isinstance(c, list):
+                    t = " ".join(b.get("text", "") for b in c
+                                 if isinstance(b, dict) and b.get("type") == "text").strip()
+                    if t:
+                        last = t
+        summary = " ".join(last.split())
+        if len(summary) > 220:
+            summary = summary[:220].rstrip() + "…"
+    except Exception:
+        summary = ""
 print(project)
 print(msg)
+print(summary)
 PY
 
 PROJECT=""
@@ -57,7 +86,9 @@ if command -v python3 >/dev/null 2>&1; then
   mapfile -t _PY < <(STDIN_JSON="$STDIN_JSON" python3 -c "$PYHELPER")
   PROJECT="${_PY[0]:-}"
   HOOK_MSG="${_PY[1]:-}"
+  SUMMARY="${_PY[2]:-}"
 fi
+SUMMARY="${SUMMARY:-}"
 
 case "$EVENT_TYPE" in
   Notification) TEXT=":bell: Claude Code needs your attention" ;;
@@ -66,6 +97,10 @@ case "$EVENT_TYPE" in
 esac
 [ -n "$PROJECT" ]  && TEXT="$TEXT  ·  *$PROJECT*"
 [ -n "$HOOK_MSG" ] && TEXT="$TEXT"$'\n'"> $HOOK_MSG"
+# On Stop, append a brief summary of what Claude just did (toggle: STOP_SUMMARY).
+if [ "$EVENT_TYPE" = "Stop" ] && [ "${STOP_SUMMARY:-true}" = "true" ] && [ -n "$SUMMARY" ]; then
+  TEXT="$TEXT"$'\n'"> $SUMMARY"
+fi
 
 sent_any=0
 

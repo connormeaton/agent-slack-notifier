@@ -80,6 +80,7 @@ Everything lives in `~/.claude/notify.env`:
 | ------------------------ | --------------------------------------------- |
 | `NOTIFY_ON_NOTIFICATION` | alert when Claude needs input                 |
 | `NOTIFY_ON_STOP`         | alert when Claude finishes a turn             |
+| `STOP_SUMMARY`           | add a 1-line summary of what Claude just did  |
 | `ENABLE_SLACK` / `SLACK_WEBHOOK_URL` | Slack on/off + webhook            |
 | `ENABLE_NTFY` / `NTFY_TOPIC` / `NTFY_SERVER` / `NTFY_TOKEN` | ntfy   |
 | `ENABLE_SMS` / `TWILIO_*`| Twilio SMS                                    |
