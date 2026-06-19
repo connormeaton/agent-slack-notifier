@@ -42,7 +42,9 @@ wiring lives in `~/.claude/settings.json`.
 | `./setup.sh`     | Guided onboarding wizard (recommended).                       |
 | `./install.sh`   | Non-interactive install — copies dispatcher, merges hooks.    |
 | `./status.sh`    | Show current config, whether hooks are wired, recent log.     |
-| `./uninstall.sh` | Remove the hooks (leaves your env/script).                    |
+| `./install-approvals.sh` | Wire the optional Slack approval gate (PreToolUse).    |
+| `./away.sh on\|off` | Arm/disarm Slack command approvals.                        |
+| `./uninstall.sh` | Remove all hooks (leaves your env/scripts).                   |
 
 All are idempotent and back up `settings.json` before editing. Re-run after a
 `git pull` to pick up updates.
@@ -104,6 +106,54 @@ so music can be loud while notifications are silent. Check:
   focused.
 
 If it's still flaky, use **ntfy** — it's built to make a reliable sound.
+
+## Approve commands from Slack (optional, two-way)
+
+Beyond *notifications*, you can **approve or deny tool calls from Slack** while
+you're away. It uses Claude Code's `PreToolUse` hook: when Claude wants to run a
+matched tool, the hook posts the command to Slack and waits for you to react
+✅ (allow) or ❌ (deny), then returns that decision to Claude.
+
+**Properties:**
+- **Opt-in & disarmed by default** — installing the gate does nothing until you
+  arm it. Disarmed = instant passthrough, your normal workflow is untouched.
+- **Fail closed** — no reaction before `APPROVAL_TIMEOUT` → the command is
+  **denied** (Claude Code's own hook timeout fails *open*, so we deny first).
+- **Fail soft on misconfig** — if armed but the bot token is missing/Slack is
+  unreachable, it falls back to the normal local permission prompt (`ask`), so a
+  present user is never hard-blocked.
+
+### Requires a Slack bot token (not the webhook)
+Reading your reaction needs the Slack Web API, so the one-way Incoming Webhook
+isn't enough. In your Slack app at <https://api.slack.com/apps>:
+1. **OAuth & Permissions → Bot Token Scopes** → add `chat:write` and
+   `reactions:read`.
+2. **Install App** to the workspace → copy the **Bot User OAuth Token** (`xoxb-…`).
+3. Invite the bot to your channel: `/invite @YourBot`.
+4. Get the **channel ID** (right-click the channel → View channel details → ID at
+   the bottom, like `C0123456789`).
+
+### Enable it
+```bash
+./install-approvals.sh                       # wire the PreToolUse gate (default: Bash)
+APPROVAL_MATCHER="Bash|Edit|Write" ./install-approvals.sh   # or gate more tools
+```
+Then set in `~/.claude/notify.env`:
+```bash
+SLACK_BOT_TOKEN="xoxb-…"
+SLACK_CHANNEL_ID="C0123456789"
+# optional: APPROVER_USER_IDS="U0123 U0456"   # only these users' reactions count
+```
+Arm when you step away, disarm when back:
+```bash
+./away.sh on        # tool calls now require Slack approval
+./away.sh off       # back to normal
+./away.sh           # show current state
+```
+
+> ⚠️ Anyone who can react in that channel can approve commands. Use a **private
+> channel**, set `APPROVER_USER_IDS` to restrict who counts, and gate only the
+> tools you care about (`APPROVAL_MATCHER`) to avoid approval fatigue.
 
 ## Notes
 

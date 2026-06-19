@@ -22,6 +22,9 @@ echo "==> Installing dispatcher → $DISPATCHER"
 cp "$SRC_DIR/notify-dispatcher.sh" "$DISPATCHER"
 chmod +x "$DISPATCHER"
 
+# Stage the approval gate too (inert unless wired via install-approvals.sh + armed).
+cp "$SRC_DIR/approve-gate.sh" "$CLAUDE_DIR/approve-gate.sh" 2>/dev/null && chmod +x "$CLAUDE_DIR/approve-gate.sh" || true
+
 if [ -f "$ENV_FILE" ]; then
   echo "==> Keeping existing $ENV_FILE (not overwritten)"
 else

@@ -27,6 +27,8 @@ h=cfg.get("hooks",{})
 for ev in ("Notification","Stop"):
     on=any("notify-dispatcher.sh" in x.get("command","") for g in h.get(ev,[]) for x in g.get("hooks",[]))
     print(f"  hook {ev:<12}: {'wired' if on else 'not wired'}")
+gate=any("approve-gate.sh" in x.get("command","") for g in h.get("PreToolUse",[]) for x in g.get("hooks",[]))
+print(f"  approval gate : {'wired' if gate else 'not wired'}")
 PY
 else
   echo "  hooks      : (settings.json or python3 unavailable)"
@@ -40,6 +42,7 @@ if [ -f "$ENV_FILE" ]; then
   echo "  Slack      : $(yn "${ENABLE_SLACK:-false}") $( [ -n "${SLACK_WEBHOOK_URL:-}" ] && echo "(webhook set)" || echo "(no webhook)" )"
   echo "  ntfy       : $(yn "${ENABLE_NTFY:-false}") $( [ -n "${NTFY_TOPIC:-}" ] && echo "(topic: $NTFY_TOPIC)" || echo "(no topic)" )"
   echo "  SMS        : $(yn "${ENABLE_SMS:-false}")"
+  echo "  approvals  : $(yn "${ENABLE_APPROVALS:-false}") $( [ "${ENABLE_APPROVALS:-false}" = "true" ] && echo "(ARMED)" || echo "(disarmed)" )$( [ -n "${SLACK_BOT_TOKEN:-}" ] && echo " bot-token set" )"
 else
   echo "  config     : ${Y}$ENV_FILE missing${R} — run ./setup.sh"
 fi

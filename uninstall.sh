@@ -15,12 +15,12 @@ import json, sys
 path = sys.argv[1]
 with open(path) as f:
     cfg = json.load(f)
-CMD_MARK = "notify-dispatcher.sh"
+MARKS = ("notify-dispatcher.sh", "approve-gate.sh")
 hooks = cfg.get("hooks", {})
-for event in ("Notification", "Stop"):
+for event in ("Notification", "Stop", "PreToolUse"):
     groups = hooks.get(event, [])
     for g in groups:
-        g["hooks"] = [h for h in g.get("hooks", []) if CMD_MARK not in h.get("command", "")]
+        g["hooks"] = [h for h in g.get("hooks", []) if not any(m in h.get("command", "") for m in MARKS)]
     hooks[event] = [g for g in groups if g.get("hooks")]
     if not hooks[event]:
         del hooks[event]
