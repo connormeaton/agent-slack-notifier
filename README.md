@@ -81,9 +81,17 @@ Everything lives in `~/.claude/notify.env`:
 | `NOTIFY_ON_NOTIFICATION` | alert when Claude needs input                 |
 | `NOTIFY_ON_STOP`         | alert when Claude finishes a turn             |
 | `STOP_SUMMARY`           | add a 1-line summary of what Claude just did  |
+| `SUMMARY_MODE`           | `snippet` (last message, free/instant) or `llm` (Haiku 1-liner, backgrounded) |
+| `SUMMARY_MODEL` / `ANTHROPIC_API_KEY` | model + key for `llm` mode (blank key → snippet) |
 | `ENABLE_SLACK` / `SLACK_WEBHOOK_URL` | Slack on/off + webhook            |
 | `ENABLE_NTFY` / `NTFY_TOPIC` / `NTFY_SERVER` / `NTFY_TOKEN` | ntfy   |
 | `ENABLE_SMS` / `TWILIO_*`| Twilio SMS                                    |
+
+**"What finished" summaries:** by default the `Stop` ping includes Claude's last
+message (`SUMMARY_MODE="snippet"` — free and instant). Set `SUMMARY_MODE="llm"` and
+an `ANTHROPIC_API_KEY` for a one-line Claude Haiku summary instead — it runs in the
+**background** (no added latency) and falls back to the snippet if the key is
+missing or the call fails. Cost is ~$0.002 per notification.
 
 **Turn it off without uninstalling:** set the channel's `ENABLE_*` to `"false"`.
 Takes effect on the next event (no restart needed). Silence just the "finished"
