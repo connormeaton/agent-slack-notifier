@@ -1,5 +1,5 @@
 #!/bin/bash
-# uninstall.sh — remove claude-notify hooks from ~/.claude/settings.json.
+# uninstall.sh — remove agent-slack-notifier hooks from ~/.claude/settings.json.
 # Leaves notify-dispatcher.sh and notify.env in place (delete them by hand if you want).
 
 set -euo pipefail
@@ -29,7 +29,7 @@ if "hooks" in cfg and not cfg["hooks"]:
 with open(path, "w") as f:
     json.dump(cfg, f, indent=2)
     f.write("\n")
-print("Removed claude-notify hooks.")
+print("Removed agent-slack-notifier hooks.")
 PY
 
 echo "Done. (Disable instead of uninstall by setting ENABLE_SLACK=false in ~/.claude/notify.env.)"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup.sh — guided onboarding for claude-notify.
+# setup.sh — guided onboarding for agent-slack-notifier.
 # Walks you through picking channels, entering credentials, installing the hooks,
 # and sending a live test — then helps if you don't hear it.
 
@@ -34,9 +34,9 @@ if [ ! -t 0 ] && [ ! -r /dev/tty ]; then
 fi
 
 clear 2>/dev/null || true
-say "${B}${CYN}┌──────────────────────────────────────────────┐${R}"
-say "${B}${CYN}│         claude-notify · guided setup          │${R}"
-say "${B}${CYN}└──────────────────────────────────────────────┘${R}"
+say ""
+say "${B}${CYN}  agent-slack-notifier${R}${D} · guided setup${R}"
+say "${D}  ───────────────────────────────────${R}"
 say "${D}Get a phone/desktop alert when Claude Code needs you${R}"
 say "${D}or finishes a task, so you can step away.${R}"
 
@@ -144,7 +144,7 @@ head "8) Sending a test"
 say "${D}Tip: switch away from the target Slack channel first — Slack mutes the${R}"
 say "${D}channel you're actively viewing.${R}"
 confirm "Send a test notification now?" && {
-  echo "{\"message\":\"claude-notify setup test — you're all set!\",\"cwd\":\"$PWD\"}" \
+  echo "{\"message\":\"agent-slack-notifier setup test — you're all set!\",\"cwd\":\"$PWD\"}" \
     | bash "$DISPATCHER" Notification
   sleep 1
   tail -n 3 "$CLAUDE_DIR/notify.log" 2>/dev/null | sed "s/^/${D}log: /; s/$/${R}/"

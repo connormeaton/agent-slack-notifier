@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh — install claude-notify into ~/.claude on this machine.
+# install.sh — install agent-slack-notifier into ~/.claude on this machine.
 #
 #   - copies notify-dispatcher.sh into ~/.claude/
 #   - creates ~/.claude/notify.env from the example (only if missing), chmod 600

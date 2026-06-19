@@ -1,5 +1,5 @@
 #!/bin/bash
-# status.sh — show current claude-notify configuration and health.
+# status.sh — show current agent-slack-notifier configuration and health.
 
 set -uo pipefail
 
@@ -12,7 +12,7 @@ LOG_FILE="$CLAUDE_DIR/notify.log"
 if [ -t 1 ]; then B=$(tput bold 2>/dev/null||true); R=$(tput sgr0 2>/dev/null||true); G=$(tput setaf 2 2>/dev/null||true); Y=$(tput setaf 3 2>/dev/null||true); else B=""; R=""; G=""; Y=""; fi
 yn() { [ "$1" = "true" ] && printf '%son%s'  "$G" "$R" || printf '%soff%s' "$Y" "$R"; }
 
-echo "${B}claude-notify status${R}"
+echo "${B}agent-slack-notifier status${R}"
 
 # dispatcher
 [ -x "$DISPATCHER" ] && echo "  dispatcher : installed ($DISPATCHER)" || echo "  dispatcher : ${Y}NOT installed${R} — run ./install.sh"

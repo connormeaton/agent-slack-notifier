@@ -1,4 +1,4 @@
-# claude-notify
+# agent-slack-notifier
 
 Get a phone/desktop alert when **Claude Code** needs your input or finishes a
 task — so you can step away from the terminal. Works on any machine (remote
@@ -10,8 +10,8 @@ optional Twilio SMS.
 ## Quick start
 
 ```bash
-git clone <your-remote> claude-notify
-cd claude-notify
+git clone git@github.com:connormeaton/agent-slack-notifier.git
+cd agent-slack-notifier
 ./setup.sh          # guided wizard: pick channels, paste creds, test
 ```
 
@@ -120,3 +120,7 @@ chmod 600 ~/.claude/notify.env
 # edit ~/.claude/notify.env with your webhook/topic
 echo '{"message":"hi","cwd":"'"$PWD"'"}' | bash ~/.claude/notify-dispatcher.sh Notification
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
