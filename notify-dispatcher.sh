@@ -73,12 +73,16 @@ key = os.environ.get("KEY", "")
 snip = os.environ.get("SNIPPET", "")[:6000]
 if not key or not snip:
     raise SystemExit(0)
+SYS = ("You convert an AI coding assistant's end-of-turn message into a single status line "
+       "for a phone notification. Rules: output EXACTLY one line, max 12 words, past tense, "
+       "start with a verb (e.g. 'Launched', 'Fixed', 'Added'). Plain text only - no markdown, "
+       "headings, bullets, emoji, quotes, code, or trailing newline. Describe what was "
+       "accomplished, not what the text says. Output only the line.")
 body = json.dumps({
     "model": os.environ["MODEL"],
-    "max_tokens": 60,
-    "system": "Summarize what the assistant just did in ONE short line (max 15 words), "
-              "past tense, plain text, no preamble or quotes.",
-    "messages": [{"role": "user", "content": snip}],
+    "max_tokens": 40,
+    "system": SYS,
+    "messages": [{"role": "user", "content": "<assistant_message>\n" + snip + "\n</assistant_message>"}],
 }).encode()
 req = urllib.request.Request(os.environ["BASE"] + "/v1/messages", data=body, headers={
     "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
@@ -86,7 +90,10 @@ try:
     with urllib.request.urlopen(req, timeout=20) as r:
         d = json.load(r)
     txt = "".join(b.get("text", "") for b in d.get("content", []) if b.get("type") == "text").strip()
-    print(" ".join(txt.split()))
+    # Defensive: take first non-empty line, strip stray markdown/quote chars.
+    line = next((l for l in txt.splitlines() if l.strip()), "")
+    line = line.lstrip("#-*> ").strip().strip('"')
+    print(" ".join(line.split()))
 except Exception:
     pass
 PY
