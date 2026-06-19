@@ -1,0 +1,4 @@
+# Never commit real secrets or logs
+notify.env
+*.log
+settings.json.bak.*
