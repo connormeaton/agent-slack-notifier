@@ -84,6 +84,23 @@ if [ "${ENABLE_SLACK:-false}" = "true" ] && [ -n "${SLACK_WEBHOOK_URL:-}" ]; the
   if [ "$HTTP_CODE" = "200" ]; then log "slack ok"; sent_any=1; else log "slack FAILED (http $HTTP_CODE)"; fi
 fi
 
+# --- Dispatch: ntfy (push app, reliable sound) ---
+if [ "${ENABLE_NTFY:-false}" = "true" ] && [ -n "${NTFY_TOPIC:-}" ]; then
+  NTFY_SERVER="${NTFY_SERVER:-https://ntfy.sh}"
+  case "$EVENT_TYPE" in
+    Notification) NTFY_TITLE="Claude needs you"; NTFY_TAGS="bell";       NTFY_PRIO="high" ;;
+    Stop)         NTFY_TITLE="Claude finished";  NTFY_TAGS="white_check_mark"; NTFY_PRIO="default" ;;
+    *)            NTFY_TITLE="Claude Code";       NTFY_TAGS="information_source"; NTFY_PRIO="default" ;;
+  esac
+  # ntfy body is plain text; strip Slack markup
+  NTFY_BODY="$(printf '%s' "$TEXT" | sed -e 's/[*_>]//g' -e 's/:[a-z_]*://g')"
+  HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Title: $NTFY_TITLE" -H "Tags: $NTFY_TAGS" -H "Priority: $NTFY_PRIO" \
+    ${NTFY_TOKEN:+-H "Authorization: Bearer $NTFY_TOKEN"} \
+    -d "$NTFY_BODY" "$NTFY_SERVER/$NTFY_TOPIC")"
+  if [[ "$HTTP_CODE" =~ ^2 ]]; then log "ntfy ok"; sent_any=1; else log "ntfy FAILED (http $HTTP_CODE)"; fi
+fi
+
 # --- Dispatch: Twilio SMS ---
 if [ "${ENABLE_SMS:-false}" = "true" ] && [ -n "${TWILIO_ACCOUNT_SID:-}" ]; then
   SMS_TEXT="$(printf '%s' "$TEXT" | sed -e 's/[*_>]//g' -e 's/:[a-z_]*://g')"

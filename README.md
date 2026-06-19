@@ -1,84 +1,122 @@
 # claude-notify
 
-Get a phone notification when **Claude Code** needs your input or finishes a task —
-so you can step away from the terminal. Works on any machine (remote server or
-local) via Claude Code's hook system. Sends to **Slack** out of the box, with
-optional **Twilio SMS**.
+Get a phone/desktop alert when **Claude Code** needs your input or finishes a
+task — so you can step away from the terminal. Works on any machine (remote
+server or local) via Claude Code's hook system.
 
-## How it works
+**Channels:** Slack (free), ntfy.sh (free push app with a reliable sound), and
+optional Twilio SMS.
 
-Claude Code fires lifecycle [hooks](https://docs.claude.com/en/docs/claude-code/hooks).
-Two are wired up:
-
-| Event          | Fires when…                                              |
-| -------------- | -------------------------------------------------------- |
-| `Notification` | Claude is waiting on you for input / permission.         |
-| `Stop`         | Claude finishes a turn.                                  |
-
-Each event runs `notify-dispatcher.sh`, which reads the event payload and posts a
-message to your configured channel(s). Secrets live in `~/.claude/notify.env`
-(never committed); the hook wiring lives in `~/.claude/settings.json`.
-
-## Install (on any machine)
+## Quick start
 
 ```bash
 git clone <your-remote> claude-notify
 cd claude-notify
-./install.sh
+./setup.sh          # guided wizard: pick channels, paste creds, test
 ```
 
-Then edit `~/.claude/notify.env` and paste your Slack webhook URL into
-`SLACK_WEBHOOK_URL`. New Claude Code sessions on that machine will start notifying.
+That's it. The wizard checks prerequisites, walks you through Slack and/or ntfy,
+writes your config, wires up the hooks, and sends a live test. New Claude Code
+sessions on that machine then notify you automatically.
 
-`install.sh` is idempotent and backs up `settings.json` before editing — safe to
-re-run after `git pull` to pick up updates.
+Prefer to do it by hand or automate it? See [Manual install](#manual-install).
 
-## Get a Slack webhook (free, ~2 min)
+## How it works
 
-1. Create a free workspace at <https://slack.com/create> (or use any workspace
-   where you can install apps).
+Claude Code fires lifecycle [hooks](https://docs.claude.com/en/docs/claude-code/hooks).
+There is **no daemon** — nothing runs in the background. Two events are wired up,
+and each just runs `notify-dispatcher.sh` once when it fires:
+
+| Event          | Fires when…                                       |
+| -------------- | ------------------------------------------------- |
+| `Notification` | Claude is waiting on you for input / permission.  |
+| `Stop`         | Claude finishes a turn.                            |
+
+Secrets live in `~/.claude/notify.env` (chmod 600, never committed). The hook
+wiring lives in `~/.claude/settings.json`.
+
+## Commands
+
+| Command          | What it does                                                  |
+| ---------------- | ------------------------------------------------------------- |
+| `./setup.sh`     | Guided onboarding wizard (recommended).                       |
+| `./install.sh`   | Non-interactive install — copies dispatcher, merges hooks.    |
+| `./status.sh`    | Show current config, whether hooks are wired, recent log.     |
+| `./uninstall.sh` | Remove the hooks (leaves your env/script).                    |
+
+All are idempotent and back up `settings.json` before editing. Re-run after a
+`git pull` to pick up updates.
+
+## Channels
+
+### Slack (free)
+1. Create/pick a workspace at <https://slack.com/create>.
 2. Make a channel, e.g. `#claude-alerts`.
 3. <https://api.slack.com/apps> → **Create New App** → **From scratch** → pick the
    workspace.
-4. **Incoming Webhooks** → toggle **On** → **Add New Webhook to Workspace** →
-   choose `#claude-alerts`.
-5. Copy the `https://hooks.slack.com/services/...` URL into `notify.env`.
-6. On your phone's Slack app, add the workspace and set that channel's
-   notifications to **All messages**.
+4. **Incoming Webhooks** → **On** → **Add New Webhook to Workspace** → choose the
+   channel → copy the `https://hooks.slack.com/services/...` URL.
 
-## Configure
+The wizard asks for that URL. On your phone's Slack app, set the channel's
+notifications to **All messages** (by default Slack only sounds for DMs/mentions).
 
-All settings live in `~/.claude/notify.env`:
+### ntfy (free, best for guaranteed sound)
+1. Install the **ntfy** app (App Store / Play Store), or open <https://ntfy.sh>.
+2. Subscribe to a secret topic (the wizard generates one like
+   `claude-alerts-7f3a9k` — treat it like a password).
+3. The wizard enables it and tests it. Self-hosted ntfy and auth tokens are
+   supported via `NTFY_SERVER` / `NTFY_TOKEN`.
 
-| Variable                 | Meaning                                             |
-| ------------------------ | --------------------------------------------------- |
-| `ENABLE_SLACK`           | `true`/`false` — Slack on/off                       |
-| `SLACK_WEBHOOK_URL`      | your incoming-webhook URL                           |
-| `NOTIFY_ON_NOTIFICATION` | alert when Claude needs input                       |
-| `NOTIFY_ON_STOP`         | alert when Claude finishes a turn                   |
-| `ENABLE_SMS` + `TWILIO_*`| optional Twilio SMS (off by default)                |
+### Twilio SMS (optional, paid)
+Set `ENABLE_SMS="true"` and the `TWILIO_*` values in `~/.claude/notify.env`.
 
-Toggling a channel off is just `ENABLE_SLACK="false"` — no need to touch hooks.
+## Configuration
 
-## Test
+Everything lives in `~/.claude/notify.env`:
 
-```bash
-echo '{"message":"hello","cwd":"/tmp/myproject"}' \
-  | bash ~/.claude/notify-dispatcher.sh Notification
-tail ~/.claude/notify.log
-```
+| Variable                 | Meaning                                       |
+| ------------------------ | --------------------------------------------- |
+| `NOTIFY_ON_NOTIFICATION` | alert when Claude needs input                 |
+| `NOTIFY_ON_STOP`         | alert when Claude finishes a turn             |
+| `ENABLE_SLACK` / `SLACK_WEBHOOK_URL` | Slack on/off + webhook            |
+| `ENABLE_NTFY` / `NTFY_TOPIC` / `NTFY_SERVER` / `NTFY_TOKEN` | ntfy   |
+| `ENABLE_SMS` / `TWILIO_*`| Twilio SMS                                    |
 
-## Uninstall
+**Turn it off without uninstalling:** set the channel's `ENABLE_*` to `"false"`.
+Takes effect on the next event (no restart needed). Silence just the "finished"
+pings with `NOTIFY_ON_STOP="false"`.
 
-```bash
-./uninstall.sh          # removes the hooks; leaves your env/script in place
-```
+## Troubleshooting: "I see it but don't hear it" (macOS)
 
-Or just disable without uninstalling: set `ENABLE_SLACK="false"` in `notify.env`.
+This bit us during development, so here's the fix. macOS plays notification
+sounds on the **sound-effects channel, which is separate from media volume** —
+so music can be loud while notifications are silent. Check:
+
+- **System Settings → Sound → Sound Effects**
+  - **Alert volume** turned up
+  - **Play sound effects through** → your real speakers/headphones (often
+    silently points at a monitor with no speakers)
+  - **Play user interface sound effects** → on
+- Turn off **Do Not Disturb / Focus**.
+- Slack: notification sound ≠ **None**, and **Notify me about → All new
+  messages** (this is **per workspace** — easy to miss if you have two accounts).
+- Slack mutes the channel you're **actively viewing** — test with another channel
+  focused.
+
+If it's still flaky, use **ntfy** — it's built to make a reliable sound.
 
 ## Notes
 
 - Secrets stay in `~/.claude/notify.env` (chmod 600) and are **gitignored**.
-- The hook command uses `$HOME`, so the same `settings.json` is portable across
-  machines and users.
-- Requires `bash`, `curl`, and `python3` (used for safe JSON encoding).
+- Hook commands use `$HOME`, so `settings.json` is portable across machines/users.
+- Requires `bash`, `curl`, and `python3`.
+
+## Manual install
+
+```bash
+./install.sh                                  # dispatcher + hooks
+cp notify.env.example ~/.claude/notify.env    # if not already present
+chmod 600 ~/.claude/notify.env
+# edit ~/.claude/notify.env with your webhook/topic
+echo '{"message":"hi","cwd":"'"$PWD"'"}' | bash ~/.claude/notify-dispatcher.sh Notification
+```

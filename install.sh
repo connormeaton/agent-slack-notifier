@@ -62,8 +62,11 @@ with open(path, "w") as f:
 print("    hooks merged: Notification, Stop")
 PY
 
-echo
-echo "Done. Next steps:"
-echo "  1. Edit $ENV_FILE — paste your Slack webhook URL into SLACK_WEBHOOK_URL."
-echo "  2. Test:  echo '{\"message\":\"hi\",\"cwd\":\"$PWD\"}' | bash \"$DISPATCHER\" Notification"
-echo "  3. New Claude Code sessions on this machine will now notify you."
+if [ "${CLAUDE_NOTIFY_QUIET:-0}" != "1" ]; then
+  echo
+  echo "Done. Next steps:"
+  echo "  • Easiest: run the guided wizard →  ./setup.sh"
+  echo "  • Or edit $ENV_FILE — paste your Slack webhook URL into SLACK_WEBHOOK_URL."
+  echo "  • Test:  echo '{\"message\":\"hi\",\"cwd\":\"$PWD\"}' | bash \"$DISPATCHER\" Notification"
+  echo "  • New Claude Code sessions on this machine will then notify you."
+fi
